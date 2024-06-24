@@ -1,0 +1,3 @@
+[submodule "env/psi-projekt"]
+	path = env/psi-projekt
+	url = https://github.com/SuperrMurlocc/psi-projekt.git
