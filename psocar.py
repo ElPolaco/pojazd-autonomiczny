@@ -9,6 +9,7 @@ class PSOCar(Car):
     def __init__(self, road_key: tuple[int, int], road_pos: int, car_id: int):
         super().__init__(road_key, road_pos, car_id)
         self.runned_pso=False
+        self.destination=None
 
     def manhattan(self,point1,point2):
 
@@ -61,17 +62,27 @@ class PSOCar(Car):
     def get_action(self, map_state: MapState) -> Action:
         self.api=EnvironmentAPI(map_state)
         id = self.get_car_id()
-        
+        coords=self.get_road_key()
+
         if not self.runned_pso:
-            self.points=[self.get_road_key()]+[point.map_position for point in self.api.get_points_for_specific_car(id) ]
+            my_road_pos = self.get_road_pos()
+            my_road = self.api.get_road(coords)
+            self.points=[my_road.get_map_position(my_road_pos)]+[point.map_position for point in self.api.get_points_for_specific_car(id) ]
             self.path,cost=self.pso()
             print(self.path,cost)
             self.runned_pso=True
-        
         #TODO: przemieścić pojazd po ścieżce w self.path
-        coords=self.get_road_key()
-        
-        return Action.FORWARD if Action.FORWARD in self.api.get_available_turns(coords) else Action.BACK
+        if self.destination==None:
+            self.destination=self.path[1]
+            self.path=self.path[2:]
+        print(self.api.get_next_road(coords,Action.FORWARD))
+        my_road_pos = self.get_road_pos()
+        my_road = self.api.get_road(coords)
+        print(my_road.get_map_position(my_road_pos),self.destination,self.points[self.destination])
+        return Action.FORWARD
+        # return Action.FORWARD if Action.FORWARD in self.api.get_available_turns(coords) else Action.RIGHT 
+        # print(self.api.get_available_turns(coords))
+        # return Action.FORWARD if Action.FORWARD in self.api.get_available_turns(coords) else Action.BACK
     
 if __name__ == "__main__":
     env = Environment(
