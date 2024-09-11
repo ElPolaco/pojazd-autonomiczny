@@ -11,7 +11,7 @@ class PSOCar(Car):
         self.runned_pso=False
 
     def manhattan(self,point1,point2):
-        # print(f"XDD{(self.points[point1].map_position)}")
+
         p11,p12=self.points[int(point1)]
         p21,p22=self.points[int(point2)]
         return abs(p21-p11)+abs(p22-p12)
@@ -37,15 +37,12 @@ class PSOCar(Car):
 
             for i,vector in enumerate(P):
                 current=self.path_length(vector)
-                # print(vector,current)
                 if np.any(pbest[i]==np.inf) or current<self.path_length(pbest[i]) :
                     pbest[i]=vector 
                 if np.any(gbest==np.inf) or current<self.path_length(gbest):
                     gbest=vector 
             for i,vector in enumerate(P):
-                # r1=np.random.random()
-                # r2=np.random.random()
-                # velocity=X*(V[i]+c1*r1*(pbest[i]-vector)+c2*r2*(gbest-vector))
+                
                 if np.all(pbest[i]==vector):
                     pdiff=np.array([])
                 else:
@@ -70,6 +67,8 @@ class PSOCar(Car):
             self.path,cost=self.pso()
             print(self.path,cost)
             self.runned_pso=True
+        
+        #TODO: przemieścić pojazd po ścieżce w self.path
         coords=self.get_road_key()
         
         return Action.FORWARD if Action.FORWARD in self.api.get_available_turns(coords) else Action.BACK
