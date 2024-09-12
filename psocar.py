@@ -5,11 +5,22 @@ from psi_environment.api.environment_api import EnvironmentAPI
 from psi_environment.environment import Environment
 import numpy as np
 
+from enum import Enum
+
+class Direction(Enum):
+    UP = 0
+    DOWN = 1
+    RIGHT = 2
+    LEFT = 3
+
 class PSOCar(Car):
+
     def __init__(self, road_key: tuple[int, int], road_pos: int, car_id: int):
         super().__init__(road_key, road_pos, car_id)
         self.runned_pso=False
         self.destination=None
+        self.previous_action=None
+        
 
     def manhattan(self,point1,point2):
 
@@ -48,7 +59,7 @@ class PSOCar(Car):
                     pdiff=np.array([])
                 else:
                     pdiff=np.where(vector!=pbest[i])[0]
-                if len(pdiff)>0:
+                if len(pdiff)>0:    
                     ii,jj=pdiff[:2]
                     vector[ii],vector[jj]=vector[jj],vector[ii]
                 gdiff=np.where(vector!=gbest)[0]
@@ -60,29 +71,69 @@ class PSOCar(Car):
         return gbest,self.path_length(gbest)
         
     def get_action(self, map_state: MapState) -> Action:
-        self.api=EnvironmentAPI(map_state)
+        api=EnvironmentAPI(map_state)
         id = self.get_car_id()
         coords=self.get_road_key()
 
         if not self.runned_pso:
             my_road_pos = self.get_road_pos()
-            my_road = self.api.get_road(coords)
-            self.points=[my_road.get_map_position(my_road_pos)]+[point.map_position for point in self.api.get_points_for_specific_car(id) ]
+            my_road = api.get_road(coords)
+            self.points=[my_road.get_map_position(my_road_pos)]+[point.map_position for point in api.get_points_for_specific_car(id) ]
             self.path,cost=self.pso()
             print(self.path,cost)
+            print(np.array(self.points)[self.path])
             self.runned_pso=True
         #TODO: przemieścić pojazd po ścieżce w self.path
         if self.destination==None:
             self.destination=self.path[1]
-            self.path=self.path[2:]
-        print(self.api.get_next_road(coords,Action.FORWARD))
+            print(self.destination)
+            self.path=self.path[1:]
+        # print(self.api.get_next_road(coords,Action.FORWARD).get_map_position(self.get_road_pos()))
         my_road_pos = self.get_road_pos()
-        my_road = self.api.get_road(coords)
-        print(my_road.get_map_position(my_road_pos),self.destination,self.points[self.destination])
+        my_road = api.get_road(coords)
+        map_position=my_road.get_map_position(my_road_pos)
+        next_point=self.points[self.destination]
+        print(map_position,self.destination,next_point)
+        print( my_road.get_available_turns(), my_road.is_position_road_end(my_road_pos))
+        direction=self.get_current_direction(my_road.get_key() )
+        print(direction)
+        if map_position==next_point or len(api.get_points_for_specific_car(id))<len(self.path):
+            self.destination=self.path[1]
+            print(self.destination)
+            self.path=self.path[1:]
+            next_point=self.points[self.destination]
+
+        if direction==Direction.LEFT and map_position[0]<next_point[0] or direction==Direction.RIGHT and map_position[0]>next_point[0]:
+            return Action.BACK
+
+        elif  my_road.is_position_road_end(my_road_pos) and direction==Direction.RIGHT and map_position[1]>next_point[1]:
+            return Action.LEFT
+        elif my_road.is_position_road_end(my_road_pos) and direction==Direction.UP and map_position[1]>next_point[1] and map_position[0]==next_point[0]:
+            return Action.LEFT if Action.LEFT in  my_road.get_available_turns() else Action.RIGHT
+        elif my_road.is_position_road_end(my_road_pos) and direction==Direction.LEFT and map_position[1]<next_point[1]:
+            return Action.LEFT
+        elif direction==Direction.LEFT and map_position[0]>next_point[0]:
+            return Action.FORWARD
+        elif my_road.is_position_road_end(my_road_pos) and direction==Direction.RIGHT and map_position[1]<next_point[1]:
+            return Action.RIGHT
+        elif  map_position[1]<next_point[1] and Direction.DOWN:
+            return Action.FORWARD
+        # elif my_road.is_position_road_end(my_road_pos) and Direction.DOWN  and map_position[0]<next_point[0]:
+        #     return Action.LEFT
+        elif my_road.is_position_road_end(my_road_pos) and Direction.DOWN  and map_position[0]>next_point[0]:
+            return Action.RIGHT
         return Action.FORWARD
-        # return Action.FORWARD if Action.FORWARD in self.api.get_available_turns(coords) else Action.RIGHT 
-        # print(self.api.get_available_turns(coords))
-        # return Action.FORWARD if Action.FORWARD in self.api.get_available_turns(coords) else Action.BACK
+    def get_current_direction(self,road_key:tuple[int,int]):
+        q,w=road_key
+        if (q-w)==6:
+            return Direction.UP
+        elif (w-q)==6:
+            return Direction.DOWN
+        elif q>w:
+            return Direction.LEFT
+        elif q<w:
+            return Direction.RIGHT
+        
     
 if __name__ == "__main__":
     env = Environment(
