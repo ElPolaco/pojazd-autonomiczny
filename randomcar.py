@@ -1,13 +1,21 @@
 from psi_environment.data.car import Car
 from psi_environment.data.action import Action
 from psi_environment.data.map_state import MapState
+from psi_environment.api.environment_api import EnvironmentAPI
 from psi_environment.environment import Environment
 import numpy as np
 
-class RandomCar(Car):
+class RandomCar(Car):    
     def get_action(self, map_state: MapState) -> Action:
-        result=np.random.choice([Action.FORWARD, Action.LEFT, Action.RIGHT, Action.BACK])
-        return result
+        api=EnvironmentAPI(map_state)
+        coords=self.get_road_key()
+        if (c:=api.get_right_road(coords))!=None:
+            print(f"RIGHT {c}")
+            return Action.RIGHT
+        else:
+            return Action.FORWARD
+        # result=np.random.choice([Action.FORWARD, Action.LEFT, Action.RIGHT, Action.BACK])
+        # return result
 
 if __name__ == "__main__":
     env = Environment(
